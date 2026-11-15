@@ -16,7 +16,9 @@ CORS(
         r"/api/*": {
             "origins": [
                 "https://ai-urban-service-intelligence-syste.vercel.app"
-            ]
+            ],
+            "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"]
         }
     }
 )
