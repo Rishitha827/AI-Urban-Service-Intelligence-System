@@ -10,7 +10,16 @@ from area_intelligence import area_bp
 app = Flask(__name__)
 
 # Allow the Next.js frontend to access the backend
-CORS(app)
+CORS(
+    app,
+    resources={
+        r"/api/*": {
+            "origins": [
+                "https://ai-urban-service-intelligence-syste.vercel.app"
+            ]
+        }
+    }
+)
 
 # Initialize existing database
 initialize_database()
