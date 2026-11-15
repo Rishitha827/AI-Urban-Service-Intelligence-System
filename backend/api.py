@@ -12,7 +12,8 @@ from area_intelligence import area_bp
 from flask import request
 from complaint_service import register_complaint
 from prediction import predict_complaint
-from similarity import find_similar_complaint
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 from priority import calculate_priority
 app = Flask(__name__)
 
@@ -69,7 +70,28 @@ def create_complaint():
 
         prediction = predict_complaint(complaint_text)
 
-        similar = find_similar_complaint(complaint_text, ward)
+        similar = None
+
+with get_db_connection() as conn:
+    rows = conn.execute("""
+        SELECT complaint_id, issue_group_id, complaint_text
+        FROM complaints
+        WHERE LOWER(ward) = LOWER(?)
+    """, (ward.strip(),)).fetchall()
+
+if rows:
+    texts = [row["complaint_text"] for row in rows]
+    vectorizer = TfidfVectorizer(ngram_range=(1, 2), stop_words="english")
+    matrix = vectorizer.fit_transform(texts + [complaint_text])
+    scores = cosine_similarity(matrix[-1], matrix[:-1]).flatten()
+
+    best_index = scores.argmax()
+    if scores[best_index] >= 0.55:
+        similar = {
+            "complaint_id": rows[best_index]["complaint_id"],
+            "issue_group_id": rows[best_index]["issue_group_id"],
+            "similarity_score": float(scores[best_index])
+        }
 
         existing_group_id = (
             similar["issue_group_id"] if similar else None
